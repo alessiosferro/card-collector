@@ -2,33 +2,20 @@ import React, {ChangeEventHandler, FormEventHandler, useEffect, useMemo, useStat
 import {Card} from "./model/card";
 import {from, Subject, switchMap} from "rxjs";
 
+import './index.css';
 import styles from './App.module.css';
-import {SelectOptions} from "./model/option";
 
 const App = () => {
   const [name, setName] = useState("");
   const [photosValue, setPhotosValue] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
-  const [type, setType] = useState<string>();
   const [cards, setCards] = useState<{[cardName: string]: Card[]}>({});
-  const [pokemonTypeOptions, setPokemonTypeOptions] = useState<SelectOptions>({
-    isLoading: true,
-    items: []
-  });
 
   const refreshCards = useMemo(() => new Subject<void>(), []);
 
   useEffect(() => {
-    (async () => {
-      const response = await fetch('http://localhost:3000/pokemonTypeOptions');
-      const options = await response.json();
-      setPokemonTypeOptions({ isLoading: false, items: options });
-    })()
-  }, []);
-
-  useEffect(() => {
     refreshCards.pipe(
-      switchMap(() => from(fetch('http://localhost:3000/cards')).pipe(
+      switchMap(() => from(fetch('http://172.20.10.2:3001/cards')).pipe(
         switchMap((response) => from(response.json()))
       )),
     ).subscribe((cards: Card[]) => {
@@ -47,12 +34,11 @@ const App = () => {
   const submitHandler: FormEventHandler = async (event) => {
     event.preventDefault();
 
-    await fetch('http://localhost:3000/cards', {
+    await fetch('http://172.20.10.2:3001/cards', {
       method: 'POST',
       body: JSON.stringify({
         name,
         photos,
-        type
       }),
       headers: {
         'Content-Type': 'application/json'
@@ -90,35 +76,28 @@ const App = () => {
 
   return (
     <>
-      <form onSubmit={submitHandler}>
-        <div>
-          <label htmlFor="cardName">Card name</label>
-          <input value={name} onChange={(ev) => setName(ev.target.value)} id="cardName" name="cardName" type="text" />
+      <form className={styles.Form} onSubmit={submitHandler}>
+        <div className={styles.FormControl}>
+          <label className={styles.FormControlLabel} htmlFor="cardName">Card name</label>
+          <input className={[styles.FormControlInput, styles.FormControlInputText].join(" ")} value={name} onChange={(ev) => setName(ev.target.value)} id="cardName" name="cardName" type="text" />
         </div>
 
-        <div>
-          <label htmlFor="type">Type</label>
-          <select name="type" id="type" onChange={ev => setType(ev.target.value)}>
-            {pokemonTypeOptions.items.map(option => <option value={option.value}>{option.label}</option>)}
-          </select>
+        <div className={styles.FormControl}>
+          <label className={styles.FormControlLabel} htmlFor="photo">Photo</label>
+          <input className={styles.FormControlInput} value={photosValue} multiple onChange={readFileHandler} type="file" id="photo" name="photo" accept="image/*"  />
         </div>
 
-        <div>
-          <label htmlFor="photo">Photo</label>
-          <input value={photosValue} multiple onChange={readFileHandler} type="file" id="photo" name="photo" accept="image/*"  />
-        </div>
+        <button className={styles.SubmitButton} type="submit">Submit data</button>
 
-        <button type="submit">Submit data</button>
-      </form>
+        {Object.entries(cards).map(([cardName, cards]) => <div key={cardName}>
+          <h3>Card name</h3>
+          <p>{cardName} ({cards.length})</p>
 
-      {Object.entries(cards).map(([cardName, cards]) => <div key={cardName}>
-        <h3>Card name</h3>
-        <p>{cardName} ({cards.length})</p>
-
-        {cards.map(card => <div className={styles.PhotosList} key={card.id}>
-          {card.photos.map((photo, index) => <img alt="" className={styles.PhotosListItem} height={400} width={300} key={index} src={photo} />)}
+          {cards.map((card, index) => <div className={styles.PhotosList} key={index}>
+            {card.photos.map((photo, index) => <img alt="" className={styles.PhotosListItem} key={index} src={photo} />)}
+          </div>)}
         </div>)}
-      </div>)}
+      </form>
     </>
   )
 }
