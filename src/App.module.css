@@ -1,0 +1,10 @@
+.PhotosList {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 25px;
+}
+
+.PhotosListItem {
+    object-fit: contain;
+    background-color: #000;
+}
